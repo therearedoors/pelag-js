@@ -129,29 +129,63 @@ topScope.print = value => {
     console.log(value);
     return value;
 };
+topScope.array = (...values) => [...values];
+topScope.length = array => array.length;
+topScope.element = (array, i) => array[i];
 
 function run(program) {
     return evaluate(parse(program), Object.create(topScope));
 }
 
+specialForms.func = (args, scope) => {
+    if (!args.length) {
+      throw new SyntaxError("Functions need a body");
+    }
+    let body = args[args.length - 1];
+    let params = args.slice(0, args.length - 1).map(expr => {
+      if (expr.type != "word") {
+        throw new SyntaxError("Parameter names must be words");
+      }
+      return expr.name;
+    });
+  
+    return function() {
+      if (arguments.length != params.length) {
+        throw new TypeError("Wrong number of arguments");
+      }
+      let localScope = Object.create(scope);
+      for (let i = 0; i < arguments.length; i++) {
+        localScope[params[i]] = arguments[i];
+      }
+      return evaluate(body, localScope);
+    };
+};
+
 //string a = hello;
 //string b = world;
+//natural c = 2;
+//rational d = 2.5;
 //a.concat(b) => a = helloworld
 //a.concats(b) => a = hello world
 //a.concats(b,2) => a = hello  world
 // const parsed_exp = parse("foo(bar)")
 // console.log(parsed_exp);
 
-run(`
-do(define(total, 0),
-   define(count, 1),
-   while(<(count, 9),
-         do(define(total, +(total, count)),
-            define(count, +(count, 1)))),
-   print(total))
-`);
-//55
-
+// run(`
+// do(define(plusOne, func(a, +(a, 1))),
+//     print(plusOne(10)))
+//   `);
+// // → 11
+// run(`
+// do(define(pow, func(base, exp,
+//     if(==(exp, 0),
+//         1,
+//         *(base, pow(base, -(exp, 1)))))),
+//     print(pow(2, 10)))
+// `);
+// → 1024
+run(`print(element(array(1, 2, 3), 1))`);
+// → 2
 // let prog = parse(`if(true, false, true)`);
 // console.log(prog);
 // console.log(evaluate(prog, topScope));
